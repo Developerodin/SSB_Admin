@@ -1,8 +1,10 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Pageheader from '@/shared/layout-components/page-header/pageheader'
 import Seo from '@/shared/layout-components/seo/seo'
 import TableSearch from '../components/TableSearch'
+import { Base_url } from '@/app/api/config/BaseUrl'
+import axios from 'axios';
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,62 +17,76 @@ import {
 } from '@tanstack/react-table';
 
 type Pool = {
-  id: string;
-  username: string;
+  userId: string;
+  name: string | null;
+  PoolA: {
+    activated: boolean;
+    dateTime: string;
+  };
+  PoolB: {
+    activated: boolean;
+    dateTime: string | null;
+  };
+}
+
+type TransformedPool = Pool & {
   poolType: string;
   date: string;
   time: string;
 }
 
-const defaultData: Pool[] = [
-  {
-    id: '1',
-    username: 'JohnDoe',
-    poolType: 'Daily Pool',
-    date: '2024-04-15',
-    time: '14:30:00'
-  },
-  {
-    id: '2',
-    username: 'JaneSmith',
-    poolType: 'Weekly Pool',
-    date: '2024-04-14',
-    time: '09:15:00'
-  },
-  {
-    id: '3',
-    username: 'MikeJohnson',
-    poolType: 'Monthly Pool',
-    date: '2024-04-13',
-    time: '16:45:00'
-  },
-  {
-    id: '4',
-    username: 'SarahWilliams',
-    poolType: 'Daily Pool',
-    date: '2024-04-12',
-    time: '11:20:00'
-  },
-  {
-    id: '5',
-    username: 'DavidBrown',
-    poolType: 'Weekly Pool',
-    date: '2024-04-11',
-    time: '13:10:00'
-  }
-];
-
 const RewardsTable = () => {
-  const [data] = useState(defaultData);
+  const [data, setData] = useState<TransformedPool[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
-  const columnHelper = createColumnHelper<Pool>();
+  useEffect(() => {
+    const fetchPools = async () => {
+      try {
+        const response = await axios.get(`${Base_url}/pools/getAllUsersActivatedPools`);
+        if (response.data.success) {
+          // Transform data to show separate rows for each activated pool
+          const transformedData = response.data.data
+            .filter((user: Pool) => user.name) // Filter out null/undefined names
+            .flatMap((user: Pool) => {
+              const pools: TransformedPool[] = [];
+              if (user.PoolA.activated) {
+                const [date, time] = user.PoolA.dateTime.split(' ');
+                pools.push({
+                  ...user,
+                  poolType: 'Pool A',
+                  date: date || '',
+                  time: time || ''
+                });
+              }
+              if (user.PoolB.activated) {
+                const [date, time] = (user.PoolB.dateTime || '').split(' ');
+                pools.push({
+                  ...user,
+                  poolType: 'Pool B',
+                  date: date || '',
+                  time: time || ''
+                });
+              }
+              return pools;
+            });
+          setData(transformedData);
+        }
+      } catch (error) {
+        console.error('Error fetching pools:', error);
+      }
+    };
+
+    fetchPools();
+  }, []);
+
+  const columnHelper = createColumnHelper<TransformedPool>();
 
   const columns = [
-    columnHelper.accessor('username', {
+    columnHelper.accessor('name', {
       header: 'Username',
+      id: 'userName',
       cell: info => (
         <span className="text-blue-600 hover:text-blue-800 cursor-pointer">
           {info.getValue()}
@@ -83,14 +99,11 @@ const RewardsTable = () => {
         const poolType = info.getValue();
         let badgeClass = 'px-2 py-1 rounded-full text-xs ';
         switch (poolType) {
-          case 'Daily Pool':
+          case 'Pool A':
             badgeClass += 'bg-green-100 text-green-800';
             break;
-          case 'Weekly Pool':
+          case 'Pool B':
             badgeClass += 'bg-blue-100 text-blue-800';
-            break;
-          case 'Monthly Pool':
-            badgeClass += 'bg-purple-100 text-purple-800';
             break;
           default:
             badgeClass += 'bg-gray-100 text-gray-800';

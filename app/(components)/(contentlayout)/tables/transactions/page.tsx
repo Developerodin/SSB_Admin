@@ -1,8 +1,11 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Pageheader from '@/shared/layout-components/page-header/pageheader'
 import Seo from '@/shared/layout-components/seo/seo'
 import TableSearch from '../components/TableSearch'
+import { Base_url } from '@/app/api/config/BaseUrl'
+import axios from 'axios';
+
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,73 +18,42 @@ import {
 } from '@tanstack/react-table';
 
 type Transaction = {
-  id: string;
-  username: string;
-  walletAddress: string;
-  type: string;
+  userName: string;
+  decentralizedWalletAddress: string;
+  transactionType: string;
   amount: number;
   date: string;
   time: string;
 }
 
-const defaultData: Transaction[] = [
-  {
-    id: '1',
-    username: 'JohnDoe',
-    walletAddress: '0x1234...5678',
-    type: 'Deposit',
-    amount: 1000,
-    date: '2024-04-15',
-    time: '14:30:00'
-  },
-  {
-    id: '2',
-    username: 'JaneSmith',
-    walletAddress: '0x5678...9012',
-    type: 'Withdrawal',
-    amount: 500,
-    date: '2024-04-14',
-    time: '09:15:00'
-  },
-  {
-    id: '3',
-    username: 'MikeJohnson',
-    walletAddress: '0x9012...3456',
-    type: 'Reward',
-    amount: 250,
-    date: '2024-04-13',
-    time: '16:45:00'
-  },
-  {
-    id: '4',
-    username: 'SarahWilliams',
-    walletAddress: '0x3456...7890',
-    type: 'Deposit',
-    amount: 2000,
-    date: '2024-04-12',
-    time: '11:20:00'
-  },
-  {
-    id: '5',
-    username: 'DavidBrown',
-    walletAddress: '0x7890...1234',
-    type: 'Withdrawal',
-    amount: 750,
-    date: '2024-04-11',
-    time: '13:10:00'
-  }
-];
-
 const TransactionsTable = () => {
-  const [data] = useState(defaultData);
+  const [data, setData] = useState<Transaction[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get(`${Base_url}/blockchains/transactions/transactionHistory`);
+        if (response.data.success) {
+          const filteredData = response.data.data.filter(
+            (transaction: Transaction) => transaction.userName !== "Unknown User"
+          );
+          setData(filteredData);
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
   const columnHelper = createColumnHelper<Transaction>();
 
   const columns = [
-    columnHelper.accessor('username', {
+    columnHelper.accessor('userName', {
       header: 'Username',
       cell: info => (
         <span className="text-blue-600 hover:text-blue-800 cursor-pointer">
@@ -89,42 +61,50 @@ const TransactionsTable = () => {
         </span>
       ),
     }),
-    columnHelper.accessor('walletAddress', {
+    columnHelper.accessor('decentralizedWalletAddress', {
       header: 'Wallet Address',
-      cell: info => info.getValue(),
+      cell: info => info.getValue() || 'N/A',
     }),
-    columnHelper.accessor('type', {
+    columnHelper.accessor('transactionType', {
       header: 'Type',
       cell: info => {
         const type = info.getValue();
         let badgeClass = 'px-2 py-1 rounded-full text-xs ';
         switch (type) {
-          case 'Deposit':
+          case 'pool_A_reward':
             badgeClass += 'bg-green-100 text-green-800';
             break;
-          case 'Withdrawal':
-            badgeClass += 'bg-red-100 text-red-800';
+          case 'investor_bonus':
+            badgeClass += 'bg-blue-100 text-blue-800';
             break;
-          case 'Reward':
+          case 'referral_bonus':
+            badgeClass += 'bg-purple-100 text-purple-800';
+            break;
+          case 'phase_bonus':
             badgeClass += 'bg-yellow-100 text-yellow-800';
+            break;
+          case 'purchase':
+            badgeClass += 'bg-indigo-100 text-indigo-800';
+            break;
+          case 'swap':
+            badgeClass += 'bg-pink-100 text-pink-800';
             break;
           default:
             badgeClass += 'bg-gray-100 text-gray-800';
         }
-        return <span className={badgeClass}>{type}</span>;
+        return <span className={badgeClass}>{type.replace(/_/g, ' ').toUpperCase()}</span>;
       },
     }),
     columnHelper.accessor('amount', {
       header: 'Amount',
       cell: info => {
         const amount = info.getValue();
-        const type = info.row.original.type;
-        const amountClass = type === 'Deposit' || type === 'Reward' 
-          ? 'text-green-600' 
-          : 'text-red-600';
+        const type = info.row.original.transactionType;
+        const isPositive = ['pool_A_reward', 'investor_bonus', 'referral_bonus', 'phase_bonus','pool_B_reward'].includes(type);
+        const amountClass = isPositive ? 'text-green-600' : 'text-red-600';
         return (
           <span className={amountClass}>
-            {type === 'Deposit' || type === 'Reward' ? '+' : '-'}${amount.toLocaleString()}
+            {isPositive ? '+' : '-'}{amount.toLocaleString()} BUSD 
           </span>
         );
       },

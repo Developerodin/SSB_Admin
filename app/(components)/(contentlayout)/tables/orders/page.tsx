@@ -1,8 +1,10 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Pageheader from '@/shared/layout-components/page-header/pageheader'
 import Seo from '@/shared/layout-components/seo/seo'
 import TableSearch from '../components/TableSearch'
+import { Base_url } from '@/app/api/config/BaseUrl'
+import axios from 'axios';
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,73 +17,42 @@ import {
 } from '@tanstack/react-table';
 
 type Order = {
-  id: string;
-  username: string;
-  nft: string;
+  userName: string;
+  blockchainName: string;
   amount: number;
   date: string;
   time: string;
-  referredBy: string;
 }
 
-const defaultData: Order[] = [
-  {
-    id: '1',
-    username: 'JohnDoe',
-    nft: 'Gold NFT #123',
-    amount: 1000,
-    date: '2024-04-15',
-    time: '14:30:00',
-    referredBy: 'JaneSmith'
-  },
-  {
-    id: '2',
-    username: 'JaneSmith',
-    nft: 'Silver NFT #456',
-    amount: 500,
-    date: '2024-04-14',
-    time: '09:15:00',
-    referredBy: 'MikeJohnson'
-  },
-  {
-    id: '3',
-    username: 'MikeJohnson',
-    nft: 'Bronze NFT #789',
-    amount: 250,
-    date: '2024-04-13',
-    time: '16:45:00',
-    referredBy: 'SarahWilliams'
-  },
-  {
-    id: '4',
-    username: 'SarahWilliams',
-    nft: 'Gold NFT #321',
-    amount: 2000,
-    date: '2024-04-12',
-    time: '11:20:00',
-    referredBy: 'DavidBrown'
-  },
-  {
-    id: '5',
-    username: 'DavidBrown',
-    nft: 'Silver NFT #654',
-    amount: 750,
-    date: '2024-04-11',
-    time: '13:10:00',
-    referredBy: 'JohnDoe'
-  }
-];
-
 const OrdersTable = () => {
-  const [data] = useState(defaultData);
+  const [data, setData] = useState<Order[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await axios.get(`${Base_url}/blockchains/transactions/purchaseHistory`);
+        if (response.data.success) {
+          // Filter out transactions with "Unknown User"
+          const filteredData = response.data.data.filter(
+            (order: Order) => order.userName !== "Unknown User"
+          );
+          setData(filteredData);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
   const columnHelper = createColumnHelper<Order>();
 
   const columns = [
-    columnHelper.accessor('username', {
+    columnHelper.accessor('userName', {
       header: 'Username',
       cell: info => (
         <span className="text-blue-600 hover:text-blue-800 cursor-pointer">
@@ -89,24 +60,28 @@ const OrdersTable = () => {
         </span>
       ),
     }),
-    columnHelper.accessor('nft', {
+    columnHelper.accessor('blockchainName', {
       header: 'NFT',
       cell: info => {
         const nft = info.getValue();
         let badgeClass = 'px-2 py-1 rounded-full text-xs ';
-        if (nft.includes('Gold')) {
-          badgeClass += 'bg-yellow-100 text-yellow-800';
-        } else if (nft.includes('Silver')) {
+        if (nft.includes('Black')) {
+          badgeClass += 'bg-gray-900 text-white';
+        } else if (nft.includes('White')) {
           badgeClass += 'bg-gray-100 text-gray-800';
+        } else if (nft.includes('Green')) {
+          badgeClass += 'bg-green-100 text-green-800';
+        } else if (nft.includes('Gold')) {
+          badgeClass += 'bg-yellow-100 text-yellow-800';
         } else {
-          badgeClass += 'bg-orange-100 text-orange-800';
+          badgeClass += 'bg-gray-100 text-gray-800';
         }
-        return <span className={badgeClass}>{nft}</span>;
+        return <span className={badgeClass}>{nft.replace('SS', 'NFT')}</span>;
       },
     }),
     columnHelper.accessor('amount', {
       header: 'Amount',
-      cell: info => `$${info.getValue().toLocaleString()}`,
+      cell: info => `${info.getValue().toLocaleString()} BUSD`,
     }),
     columnHelper.accessor('date', {
       header: 'Date',
@@ -115,19 +90,6 @@ const OrdersTable = () => {
     columnHelper.accessor('time', {
       header: 'Time',
       cell: info => info.getValue(),
-    }),
-    columnHelper.accessor('referredBy', {
-      header: 'Referred By',
-      cell: info => {
-        const referredBy = info.getValue();
-        return referredBy ? (
-          <span className="text-blue-600 hover:text-blue-800 cursor-pointer">
-            {referredBy}
-          </span>
-        ) : (
-          <span className="text-gray-400">-</span>
-        );
-      },
     }),
   ];
 

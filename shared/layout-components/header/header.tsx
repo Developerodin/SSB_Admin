@@ -486,8 +486,8 @@ const Header = ({ local_varaiable, ThemeChanger }:any) => {
                   <img className="inline-block rounded-full " src={`${process.env.NODE_ENV === "production" ? basePath : ""}/assets/images/faces/9.jpg`} width="32" height="32" alt="Image Description" />
                 </button>
                 <div className="md:block hidden dropdown-profile">
-                  <p className="font-semibold mb-0 leading-none text-[#536485] text-[0.813rem] ">Json Taylor</p>
-                  <span className="opacity-[0.7] font-normal text-[#536485] block text-[0.6875rem] ">Web Designer</span>
+                  <p className="font-semibold mb-0 leading-none text-[#536485] text-[0.813rem] ">Steps Stamp</p>
+                  <span className="opacity-[0.7] font-normal text-[#536485] block text-[0.6875rem] ">Admin</span>
                 </div>
                 <div
                   className="hs-dropdown-menu ti-dropdown-menu !-mt-3 border-0 w-[11rem] !p-0 border-defaultborder hidden main-header-dropdown  pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end"
@@ -501,8 +501,7 @@ const Header = ({ local_varaiable, ThemeChanger }:any) => {
                     </li>
                     <li>
                       <Link className="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0  !p-[0.65rem] " href="#!"><i
-                        className="ti ti-inbox text-[1.125rem] me-2 opacity-[0.7] !inline-flex"></i>Inbox <span
-                          className="!py-1 !px-[0.45rem] !font-semibold !rounded-sm text-success text-[0.75em] bg-success/10 ms-auto">25</span>
+                        className="ti ti-inbox text-[1.125rem] me-2 opacity-[0.7] !inline-flex"></i>Inbox <span></span>
                       </Link>
                     </li>
                     <li><Link className="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem]" href="#!"><i
