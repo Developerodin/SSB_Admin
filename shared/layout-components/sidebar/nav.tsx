@@ -5,6 +5,7 @@ const RewardsIcon = <i className="bx bx-gift side-menu__icon"></i>;
 const TransactionsIcon = <i className="bx bx-transfer side-menu__icon"></i>;
 const OrdersIcon = <i className="bx bx-cart side-menu__icon"></i>;
 const CouponsIcon = <i className="bx bxs-coupon side-menu__icon"></i>;
+const ChatIcon = <i className="bx bx-message-square-dots side-menu__icon"></i>;
 
 export const MenuItems: any = [
   {
@@ -17,6 +18,14 @@ export const MenuItems: any = [
     active: false,
     selected: false,
     path: "/tables/users",
+  },
+  {
+    icon: ChatIcon,
+    title: "Chat",
+    type: "link",
+    active: false,
+    selected: false,
+    path: "/tables/chat",
   },
   {
     icon: RewardsIcon,

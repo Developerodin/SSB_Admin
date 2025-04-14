@@ -28,6 +28,16 @@ type User = {
   rewards: number;
   lastActive: string;
   referredBy: string;
+  dateOfBirth: string;
+  gender: string;
+  height: string;
+  weight: string;
+  freeMiningActivate: boolean;
+  freeMiningActivateDate: string;
+  blockchainMiningActivate: boolean;
+  blockchainMiningActivateDate: string;
+  completedBlocks: number;
+  watchOwner: boolean;
 }
 
 interface UserDetailsModalProps {
@@ -65,45 +75,55 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ isOpen, onClose, us
                 <p className="font-medium">{user.email}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">NFT Type</label>
-                <p className="font-medium">{user.nftType}</p>
+                <label className="text-sm text-gray-500">Date of Birth</label>
+                <p className="font-medium">{new Date(user.dateOfBirth).toLocaleDateString()}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Registration Date</label>
-                <p className="font-medium">{user.date}</p>
+                <label className="text-sm text-gray-500">Gender</label>
+                <p className="font-medium">{user.gender}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Height</label>
+                <p className="font-medium">{user.height || '-'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Weight</label>
+                <p className="font-medium">{user.weight || '-'}</p>
               </div>
             </div>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-4">Blockchain Details</h3>
+            <h3 className="font-semibold mb-4">Mining Information</h3>
             <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-500">Free Mining Status</label>
+                <p className="font-medium">{user.freeMiningActivate ? 'Active' : 'Inactive'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Free Mining Start Date</label>
+                <p className="font-medium">{new Date(user.freeMiningActivateDate).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Blockchain Mining Status</label>
+                <p className="font-medium">{user.blockchainMiningActivate ? 'Active' : 'Inactive'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Blockchain Mining Start Date</label>
+                <p className="font-medium">{user.blockchainMiningActivateDate ? new Date(user.blockchainMiningActivateDate).toLocaleDateString() : '-'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Completed Blocks</label>
+                <p className="font-medium">{user.completedBlocks}</p>
+              </div>
               <div>
                 <label className="text-sm text-gray-500">Wallet Address</label>
                 <p className="font-medium break-all">{user.walletAddress}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Total NFTs</label>
-                <p className="font-medium">{user.totalNFTs}</p>
+                <label className="text-sm text-gray-500">Watch Owner</label>
+                <p className="font-medium">{user.watchOwner ? 'Yes' : 'No'}</p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <h3 className="font-semibold mb-4">Activity Information</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-gray-50 p-4 rounded">
-              <label className="text-sm text-gray-500">Total Steps</label>
-              <p className="font-medium text-lg">{user.totalSteps.toLocaleString()}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded">
-              <label className="text-sm text-gray-500">Total Rewards</label>
-              <p className="font-medium text-lg">{user.rewards} SSB</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded">
-              <label className="text-sm text-gray-500">Last Active</label>
-              <p className="font-medium text-lg">{user.lastActive}</p>
             </div>
           </div>
         </div>
@@ -172,11 +192,171 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   );
 };
 
+interface EditUserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  user: User | null;
+  onUpdate: (updatedUser: User) => void;
+}
+
+const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, onUpdate }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    dateOfBirth: '',
+    gender: '',
+    height: '',
+    weight: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        gender: user.gender,
+        height: user.height || '',
+        weight: user.weight || '',
+      });
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('Admin token');
+      if (!token) {
+        throw new Error('No admin token found');
+      }
+
+      const response = await axios.patch(
+        `${Base_url}users/update-profile`,
+        {
+          userId: user?.id,
+          ...formData
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      onUpdate(response.data.user);
+      onClose();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setError('Failed to update user. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen || !user) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold">Edit User</h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Date of Birth</label>
+              <input
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Gender</label>
+              <select
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Height (cm)</label>
+              <input
+                type="number"
+                value={formData.height}
+                onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Weight (kg)</label>
+              <input
+                type="number"
+                value={formData.weight}
+                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            >
+              {loading ? 'Updating...' : 'Update'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const UsersTable = () => {
   const [data, setData] = useState<User[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [loading, setLoading] = useState(true);
@@ -198,7 +378,17 @@ const UsersTable = () => {
           totalSteps: user.totalSteps,
           rewards: user.completedBlocks * 10, // Assuming 10 SSB per completed block
           lastActive: new Date(user.lastLogin).toLocaleDateString(),
-          referredBy: user.referredBy || '-'
+          referredBy: user.referredBy || '-',
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
+          height: user.height,
+          weight: user.weight,
+          freeMiningActivate: user.freeMiningActivate,
+          freeMiningActivateDate: user.freeMiningActivateDate,
+          blockchainMiningActivate: user.blockchainMiningActivate,
+          blockchainMiningActivateDate: user.blockchainMiningActivateDate,
+          completedBlocks: user.completedBlocks,
+          watchOwner: user.watchOwner,
         }));
         setData(transformedData);
         setLoading(false);
@@ -211,9 +401,28 @@ const UsersTable = () => {
     fetchUsers();
   }, []);
 
-  const handleEdit = (user: User) => {
-    // TODO: Implement edit functionality
-    console.log('Edit user:', user);
+  const handleEdit = async (user: User) => {
+    try {
+      const token = localStorage.getItem('Admin token');
+      if (!token) {
+        throw new Error('No admin token found');
+      }
+
+      const response = await axios.get(`${Base_url}/users/get-user/${user.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+         
+      setUserToEdit(response.data.user);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      alert('Failed to fetch user details. Please try again.');
+    }
+  };
+
+  const handleUpdateUser = (updatedUser: User) => {
+    setData(data.map(user => user.id === updatedUser.id ? updatedUser : user));
   };
 
   const handleDelete = async (user: User) => {
@@ -474,6 +683,13 @@ const UsersTable = () => {
         onClose={() => setUserToDelete(null)}
         onConfirm={confirmDelete}
         userName={userToDelete?.name || ''}
+      />
+
+      <EditUserModal
+        isOpen={!!userToEdit}
+        onClose={() => setUserToEdit(null)}
+        user={userToEdit}
+        onUpdate={handleUpdateUser}
       />
     </div>
   );
