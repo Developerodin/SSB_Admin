@@ -2,9 +2,38 @@
 import Seo from '@/shared/layout-components/seo/seo'
 import Link from 'next/link';
 import React, { Fragment, useState } from 'react'
+import { Base_url } from '@/app/api/config/BaseUrl';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 const Signinbasic = () => {
     const [passwordshow1, setpasswordshow1] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const router = useRouter();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        try {
+            const response = await axios.post(`${Base_url}/admin/login`, {
+                email,
+                password
+            });
+               console.log("Response Data=>>>",response.data)
+            if (response.data) {
+                // Save token to localStorage
+                localStorage.setItem('Admin token', response.data.token);
+                localStorage.setItem('AdminDetails', JSON.stringify(response.data.admin));
+                // Redirect to tables page
+                router.push('/tables/users');
+            }
+        } catch (error: any) {
+            setError(error.response?.data?.message || 'Login failed. Please try again.');
+        }
+    };
 
     return (
         <Fragment>
@@ -48,8 +77,15 @@ const Signinbasic = () => {
                             {/* Title */}
                             <h2 className="text-2xl text-white text-center mb-8">Hi There!</h2>
 
+                            {/* Error message */}
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-500/20 text-red-400 rounded-lg text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             {/* Form */}
-                            <form className="space-y-6">
+                            <form className="space-y-6" onSubmit={handleSubmit}>
                                 <div>
                                     <input
                                         type="email"
@@ -58,6 +94,9 @@ const Signinbasic = () => {
                                             boxShadow: 'inset 5px 5px 10px rgba(0, 0, 0, 0.2), inset -5px -5px 10px rgba(255, 255, 255, 0.05)'
                                         }}
                                         placeholder="Email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
                                     />
                                 </div>
 
@@ -69,6 +108,9 @@ const Signinbasic = () => {
                                             boxShadow: 'inset 5px 5px 10px rgba(0, 0, 0, 0.2), inset -5px -5px 10px rgba(255, 255, 255, 0.05)'
                                         }}
                                         placeholder="Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
                                     />
                                     <button
                                         type="button"
@@ -88,13 +130,10 @@ const Signinbasic = () => {
                                 >
                                     Sign in
                                 </button>
-
-                              
                             </form>
 
                             <div className="text-center mt-6">
                                 <p className="text-sm text-gray-400">
-                                   
                                     <Link href="/signup" className="text-white ml-1 hover:text-gray-200 transition-colors duration-300">Forgot Password?</Link>
                                 </p>
                             </div>

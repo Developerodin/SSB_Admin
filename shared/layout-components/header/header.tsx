@@ -9,9 +9,15 @@ import { basePath } from '@/next.config';
 import { useRouter } from 'next/navigation';
 
 const Header = ({ local_varaiable, ThemeChanger }:any) => {
+  const router = useRouter();
 
 
   const [passwordshow1, setpasswordshow1] = useState(false);
+  const handleLogout = () => {
+    localStorage.removeItem('Admin token');
+    localStorage.removeItem('AdminDetails');
+    router.push('/auth/login')
+  };
 
   const data=  <span className="font-[600] py-[0.25rem] px-[0.45rem] rounded-[0.25rem] bg-pinkmain/10 text-pinkmain text-[0.625rem]">Free shipping</span>
 
@@ -509,8 +515,16 @@ const Header = ({ local_varaiable, ThemeChanger }:any) => {
                     <li><Link className="w-full ti-dropdown-item !text-[0.8125rem] !gap-x-0 !p-[0.65rem]" href="#!"><i
                       className="ti ti-adjustments-horizontal text-[1.125rem] me-2 opacity-[0.7] !inline-flex"></i>Settings</Link></li>
                  
-                    <li><Link className="w-full ti-dropdown-item !text-[0.8125rem] !p-[0.65rem] !gap-x-0 !inline-flex" href="#!"><i
-                      className="ti ti-logout text-[1.125rem] me-2 opacity-[0.7] !inline-flex"></i>Log Out</Link></li>
+                                        <li>
+                      <Link
+                        className="w-full ti-dropdown-item !text-[0.8125rem] !p-[0.65rem] !gap-x-0 !inline-flex"
+                        href="/auth/login"
+                        onClick={handleLogout} 
+                      >
+                        <i className="ti ti-logout text-[1.125rem] me-2 opacity-[0.7] !inline-flex"></i>
+                        Log Out
+                      </Link>
+                    </li>
                   </ul>
                 </div>
               </div>

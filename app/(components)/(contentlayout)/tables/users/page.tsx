@@ -121,13 +121,66 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ isOpen, onClose, us
   );
 };
 
+interface DeleteConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  userName: string;
+}
+
+const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm,
+  userName 
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Confirm Deletion</h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <p className="mb-6">
+          Are you sure you want to delete user <span className="font-semibold">{userName}</span>? This action cannot be undone.
+        </p>
+
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UsersTable = () => {
   const [data, setData] = useState<User[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -138,7 +191,7 @@ const UsersTable = () => {
           id: user.id,
           name: user.name,
           email: user.email,
-          nftType: user.blockchainIds?.length > 0 ? 'Gold' : 'Silver', // Determine NFT type based on blockchainIds
+          nftType: user.blockchainIds?.length > 0 ? 'Gold' : '-', // Determine NFT type based on blockchainIds
           date: new Date(user.freeMiningActivateDate).toLocaleDateString(),
           walletAddress: user.decentralizedWalletAddress,
           totalNFTs: user.blockchainIds?.length || 0,
@@ -163,9 +216,38 @@ const UsersTable = () => {
     console.log('Edit user:', user);
   };
 
-  const handleDelete = (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setData(data.filter(user => user.id !== userId));
+  const handleDelete = async (user: User) => {
+    setUserToDelete(user);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      const token = localStorage.getItem('Admin token');
+      if (!token) {
+        throw new Error('No admin token found');
+      }
+
+      await axios.post(
+        `${Base_url}/users/delete-account`,
+        { userId: userToDelete.id },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      // Remove the user from the local state
+      setData(data.filter(user => user.id !== userToDelete.id));
+      setUserToDelete(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user. Please try again.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -234,7 +316,7 @@ const UsersTable = () => {
             Edit
           </button>
           <button
-            onClick={() => handleDelete(info.row.original.id)}
+            onClick={() => handleDelete(info.row.original)}
             className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
           >
             Delete
@@ -385,6 +467,13 @@ const UsersTable = () => {
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
         user={selectedUser}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={confirmDelete}
+        userName={userToDelete?.name || ''}
       />
     </div>
   );
