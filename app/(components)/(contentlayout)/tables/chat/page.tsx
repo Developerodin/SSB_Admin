@@ -98,7 +98,6 @@ const AdminChat = () => {
         `${Base_url}chat/history`,
         {
           userId: userId,
-          adminId: adminId,
         },
         {
           headers: {
