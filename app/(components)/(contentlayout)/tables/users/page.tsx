@@ -351,6 +351,240 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
   );
 };
 
+interface CreateUserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreate: (newUser: User) => void;
+}
+
+const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onCreate }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
+    email: '',
+    dateOfBirth: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const validateForm = () => {
+    const errors = [];
+
+    // Name validation
+    if (!formData.name.trim()) {
+      errors.push('Name is required');
+    }
+
+    // Username validation
+    if (!formData.username.trim()) {
+      errors.push('Username is required');
+    } else if (formData.username.length < 3 || formData.username.length > 30) {
+      errors.push('Username must be between 3 and 30 characters');
+    }
+
+    // Password validation
+    if (!formData.password) {
+      errors.push('Password is required');
+    } else if (formData.password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+
+    // Confirm Password validation
+    if (formData.password !== formData.confirmPassword) {
+      errors.push('Passwords do not match');
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      errors.push('Email is required');
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        errors.push('Please enter a valid email address');
+      }
+    }
+
+    // Date of Birth validation
+    if (!formData.dateOfBirth) {
+      errors.push('Date of Birth is required');
+    } else {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      if (today.getMonth() < birthDate.getMonth() || 
+          (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) {
+          age--;
+      }
+      if (age < 18) {
+        errors.push('You must be at least 18 years old to register');
+      }
+    }
+
+    return errors;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(', '));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('Admin token');
+      if (!token) {
+        throw new Error('No admin token found');
+      }
+
+      const response = await axios.post(
+        `${Base_url}admin/register-user`,
+        {
+          name: formData.name,
+          username: formData.username,
+          password: formData.password,
+          email: formData.email,
+          dateOfBirth: formData.dateOfBirth,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      onCreate(response.data.user);
+      onClose();
+      // Reset form after successful creation
+      setFormData({
+        name: '',
+        username: '',
+        password: '',
+        confirmPassword: '',
+        email: '',
+        dateOfBirth: '',
+      });
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      setError(error.response?.data?.message || 'Failed to create user. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold">Create New User</h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Username (3-30 characters) *</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Password (min 8 characters) *</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Confirm Password *</label>
+              <input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">Date of Birth (Must be 18+) *</label>
+              <input
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            >
+              {loading ? 'Creating...' : 'Create User'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const UsersTable = () => {
   const [data, setData] = useState<User[]>([]);
   const [pageSize, setPageSize] = useState(10);
@@ -361,6 +595,7 @@ const UsersTable = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -458,6 +693,10 @@ const UsersTable = () => {
     } finally {
       setDeleteLoading(false);
     }
+  };
+
+  const handleCreateUser = (newUser: User) => {
+    setData([...data, newUser]);
   };
 
   const columnHelper = createColumnHelper<User>();
@@ -570,20 +809,28 @@ const UsersTable = () => {
             <div className="mb-4 space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold">Users List</h2>
-                <select
-                  value={pageSize}
-                  onChange={e => {
-                    setPageSize(Number(e.target.value));
-                    table.setPageSize(Number(e.target.value));
-                  }}
-                  className="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  {[5, 10, 20].map(size => (
-                    <option key={size} value={size}>
-                      Show {size}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Create User
+                  </button>
+                  <select
+                    value={pageSize}
+                    onChange={e => {
+                      setPageSize(Number(e.target.value));
+                      table.setPageSize(Number(e.target.value));
+                    }}
+                    className="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {[5, 10, 20].map(size => (
+                      <option key={size} value={size}>
+                        Show {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <TableSearch
@@ -690,6 +937,12 @@ const UsersTable = () => {
         onClose={() => setUserToEdit(null)}
         user={userToEdit}
         onUpdate={handleUpdateUser}
+      />
+
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={handleCreateUser}
       />
     </div>
   );
