@@ -192,7 +192,48 @@ const AdminChat = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Format time
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Check if it's today
+    if (date.toDateString() === now.toDateString()) {
+      return `Today ${time}`;
+    }
+    // Check if it's yesterday
+    else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday ${time}`;
+    }
+    // For older dates
+    else {
+      return `${date.toLocaleDateString()} ${time}`;
+    }
+  };
+
+  const formatSidebarDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Format time
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Check if it's today
+    if (date.toDateString() === now.toDateString()) {
+      return time;
+    }
+    // Check if it's yesterday
+    else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday ${time}`;
+    }
+    // For older dates
+    else {
+      return date.toLocaleDateString();
+    }
   };
 
   return (
@@ -260,7 +301,7 @@ const AdminChat = () => {
                             {user.lastMessage}
                           </p>
                           <p className="text-xs text-gray-400">
-                            {formatDate(user.lastMessageTime || '')}
+                            {formatSidebarDate(user.lastMessageTime || '')}
                           </p>
                         </div>
                       )}

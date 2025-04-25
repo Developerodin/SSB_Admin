@@ -5,7 +5,7 @@ import store from "@/shared/redux/store";
 import PrelineScript from "./PrelineScript";
 import { useState } from "react";
 import { Initialload } from "@/shared/contextapi";
-import Icon from "./SSB.png";
+
 
 const RootLayout = ({children}:any) => {
   const [pageloading, setpageloading] = useState(false);
@@ -13,6 +13,7 @@ const RootLayout = ({children}:any) => {
   return (
     <html lang="en">
       <head>
+      <link rel="icon" href="SSB.png" />
         <title>Steps Stamp</title>
         <meta name="description" content="Steps Stamp - Admin Panel" />
       </head>

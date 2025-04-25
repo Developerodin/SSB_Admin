@@ -1,8 +1,10 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import Pageheader from '@/shared/layout-components/page-header/pageheader'
 import Seo from '@/shared/layout-components/seo/seo'
 import TableSearch from '../components/TableSearch'
+import { Base_url } from '@/app/api/config/BaseUrl'
+import axios from 'axios';
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,54 +17,54 @@ import {
 } from '@tanstack/react-table';
 
 type Coupon = {
-  id: string;
+  _id: string;
   code: string;
-  discount: number;
+  amount: number;
   type: 'percentage' | 'fixed';
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'expired' | 'used';
+  expiryDate: string;
+  isActive: boolean;
   usageLimit: number;
   usedCount: number;
-  minPurchase: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const defaultData: Coupon[] = [
   {
-    id: '1',
+    _id: '1',
     code: 'WELCOME20',
-    discount: 20,
+    amount: 20,
     type: 'percentage',
-    startDate: '2024-04-01',
-    endDate: '2024-04-30',
-    status: 'active',
+    expiryDate: '2024-04-30',
+    isActive: true,
     usageLimit: 100,
     usedCount: 45,
-    minPurchase: 50
+    createdAt: '2024-04-01T00:00:00',
+    updatedAt: '2024-04-01T00:00:00'
   },
   {
-    id: '2',
+    _id: '2',
     code: 'SPRING50',
-    discount: 50,
+    amount: 50,
     type: 'fixed',
-    startDate: '2024-04-15',
-    endDate: '2024-05-15',
-    status: 'active',
+    expiryDate: '2024-05-15',
+    isActive: true,
     usageLimit: 50,
     usedCount: 12,
-    minPurchase: 100
+    createdAt: '2024-04-15T00:00:00',
+    updatedAt: '2024-04-15T00:00:00'
   },
   {
-    id: '3',
+    _id: '3',
     code: 'SUMMER10',
-    discount: 10,
+    amount: 10,
     type: 'percentage',
-    startDate: '2024-05-01',
-    endDate: '2024-05-31',
-    status: 'active',
+    expiryDate: '2024-05-31',
+    isActive: true,
     usageLimit: 200,
     usedCount: 0,
-    minPurchase: 30
+    createdAt: '2024-05-01T00:00:00',
+    updatedAt: '2024-05-01T00:00:00'
   }
 ];
 
@@ -73,19 +75,19 @@ const CouponForm = ({
 }: { 
   coupon?: Coupon; 
   onClose: () => void; 
-  onSubmit: (data: Omit<Coupon, 'id'>) => void;
+  onSubmit: (data: Omit<Coupon, '_id'>) => void;
 }) => {
-  const [formData, setFormData] = useState<Omit<Coupon, 'id'>>(
+  const [formData, setFormData] = useState<Omit<Coupon, '_id'>>(
     coupon || {
       code: '',
-      discount: 0,
+      amount: 0,
       type: 'percentage',
-      startDate: '',
-      endDate: '',
-      status: 'active',
+      expiryDate: '',
+      isActive: true,
       usageLimit: 0,
       usedCount: 0,
-      minPurchase: 0
+      createdAt: '',
+      updatedAt: ''
     }
   );
 
@@ -115,8 +117,8 @@ const CouponForm = ({
             <label className="block text-sm font-medium text-gray-700">Discount</label>
             <input
               type="number"
-              value={formData.discount}
-              onChange={e => setFormData({ ...formData, discount: Number(e.target.value) })}
+              value={formData.amount}
+              onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />
@@ -133,21 +135,11 @@ const CouponForm = ({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Start Date</label>
+            <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
             <input
               type="date"
-              value={formData.startDate}
-              onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">End Date</label>
-            <input
-              type="date"
-              value={formData.endDate}
-              onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+              value={formData.expiryDate}
+              onChange={e => setFormData({ ...formData, expiryDate: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />
@@ -158,16 +150,6 @@ const CouponForm = ({
               type="number"
               value={formData.usageLimit}
               onChange={e => setFormData({ ...formData, usageLimit: Number(e.target.value) })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Minimum Purchase</label>
-            <input
-              type="number"
-              value={formData.minPurchase}
-              onChange={e => setFormData({ ...formData, minPurchase: Number(e.target.value) })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />
@@ -194,26 +176,54 @@ const CouponForm = ({
 };
 
 const CouponsTable = () => {
-  const [data, setData] = useState(defaultData);
+  const [data, setData] = useState<Coupon[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | undefined>();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const token = localStorage.getItem('Admin token');
+        if (!token) {
+          throw new Error('No admin token found');
+        }
+
+        const response = await axios.get(`${Base_url}blockchains/getDiscountData`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.data.success) {
+          setData(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching coupons:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCoupons();
+  }, []);
 
   const columnHelper = createColumnHelper<Coupon>();
 
-  const handleCreate = (newCoupon: Omit<Coupon, 'id'>) => {
+  const handleCreate = (newCoupon: Omit<Coupon, '_id'>) => {
     const id = (data.length + 1).toString();
-    setData([...data, { ...newCoupon, id }]);
+    setData([...data, { ...newCoupon, _id: id }]);
     setShowForm(false);
   };
 
-  const handleEdit = (updatedCoupon: Omit<Coupon, 'id'>) => {
+  const handleEdit = (updatedCoupon: Omit<Coupon, '_id'>) => {
     if (editingCoupon) {
       setData(data.map(coupon => 
-        coupon.id === editingCoupon.id 
-          ? { ...updatedCoupon, id: editingCoupon.id }
+        coupon._id === editingCoupon._id 
+          ? { ...updatedCoupon, _id: editingCoupon._id }
           : coupon
       ));
       setShowForm(false);
@@ -223,7 +233,7 @@ const CouponsTable = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this coupon?')) {
-      setData(data.filter(coupon => coupon.id !== id));
+      setData(data.filter(coupon => coupon._id !== id));
     }
   };
 
@@ -236,7 +246,7 @@ const CouponsTable = () => {
         </span>
       ),
     }),
-    columnHelper.accessor('discount', {
+    columnHelper.accessor('amount', {
       header: 'Discount',
       cell: info => {
         const type = info.row.original.type;
@@ -260,18 +270,14 @@ const CouponsTable = () => {
         );
       },
     }),
-    columnHelper.accessor('startDate', {
-      header: 'Start Date',
-      cell: info => info.getValue(),
+    columnHelper.accessor('expiryDate', {
+      header: 'Expiry Date',
+      cell: info => new Date(info.getValue()).toLocaleDateString(),
     }),
-    columnHelper.accessor('endDate', {
-      header: 'End Date',
-      cell: info => info.getValue(),
-    }),
-    columnHelper.accessor('status', {
+    columnHelper.accessor('isActive', {
       header: 'Status',
       cell: info => {
-        const status = info.getValue();
+        const status = info.getValue() ? 'active' : 'expired';
         let badgeClass = 'px-2 py-1 rounded-full text-xs ';
         switch (status) {
           case 'active':
@@ -279,9 +285,6 @@ const CouponsTable = () => {
             break;
           case 'expired':
             badgeClass += 'bg-red-100 text-red-800';
-            break;
-          case 'used':
-            badgeClass += 'bg-gray-100 text-gray-800';
             break;
         }
         return <span className={badgeClass}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>;
@@ -293,10 +296,6 @@ const CouponsTable = () => {
         const { usageLimit, usedCount } = info.row.original;
         return `${usedCount}/${usageLimit}`;
       },
-    }),
-    columnHelper.accessor('minPurchase', {
-      header: 'Min. Purchase',
-      cell: info => `$${info.getValue()}`,
     }),
     columnHelper.display({
       id: 'actions',
@@ -313,7 +312,7 @@ const CouponsTable = () => {
             Edit
           </button>
           <button
-            onClick={() => handleDelete(info.row.original.id)}
+            onClick={() => handleDelete(info.row.original._id)}
             className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
           >
             Delete
